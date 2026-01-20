@@ -96,7 +96,6 @@ export const register = async (req, res) => {
 export const login = async (req, res) => {
   try {
     const { login, password } = req.body;
-    // login = email OR phone
 
     if (!login || !password) {
       return res.status(400).json({
@@ -104,8 +103,7 @@ export const login = async (req, res) => {
         message: "Email/Phone and password are required",
       });
     }
-
-    // 🔍 Find user by email or phone
+   
     const [users] = await db.query(
       `SELECT * FROM users
        WHERE email = ? OR phone = ?
@@ -121,16 +119,14 @@ export const login = async (req, res) => {
     }
 
     const user = users[0];
-
-    // ❌ Check user status
+   
     if (user.status !== "ACTIVE") {
       return res.status(403).json({
         success: false,
         message: "Account is not active",
       });
     }
-
-    // 🔐 Compare password
+   
     const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
@@ -139,8 +135,7 @@ export const login = async (req, res) => {
         message: "Invalid credentials",
       });
     }
-
-    // 🔐 Generate tokens
+   
     const accessToken = jwt.sign(
       { user_id: user.id, role_id: user.role_id },
       "ACCESS_SECRET_KEY",
@@ -148,19 +143,16 @@ export const login = async (req, res) => {
     );
 
     const refreshToken = uuidv4();
-
-    // 🧹 Revoke old tokens
+   
     await db.query(
       `UPDATE user_tokens
        SET is_revoked = 1
        WHERE user_id = ?`,
       [user.id]
     );
-
-    // ⏰ Token expiry (7 days)
+    
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-
-    // 💾 Save token
+   
     await db.query(
       `INSERT INTO user_tokens
       (user_id, access_token, refresh_token, is_revoked, expires_at)
@@ -195,3 +187,5 @@ export const login = async (req, res) => {
     });
   }
 };
+
+// Customer Logout
