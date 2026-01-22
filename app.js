@@ -2,9 +2,10 @@ import express from 'express';
 import cookieParser from 'cookie-parser';
 import { config } from 'dotenv';
 import cors from 'cors';
-import path from "path";
 import authRoutes from './routes/authRoutes.js';
 import otpRoutes from './routes/otpRoutes.js';
+import categoriesRoutes from './routes/categoriesRoutes.js';
+import subCategoriesRoutes from './routes/subcategoriesRoutes.js';
 
 config({
     path: './config.env'
@@ -22,7 +23,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use("/uploads", express.static("uploads"));
 
- app.use('/api', authRoutes);
- app.use('/api', otpRoutes);
+app.use('/api', authRoutes);
+app.use('/api', otpRoutes);
+app.use('/api', categoriesRoutes);
+app.use('/api', subCategoriesRoutes);
 
 export default app;

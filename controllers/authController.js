@@ -92,7 +92,7 @@ export const register = async (req, res) => {
   }
 };
 
-// Customer Login
+//Login
 export const login = async (req, res) => {
   try {
     const { login, password } = req.body;
@@ -103,7 +103,7 @@ export const login = async (req, res) => {
         message: "Email/Phone and password are required",
       });
     }
-   
+
     const [users] = await db.query(
       `SELECT * FROM users
        WHERE email = ? OR phone = ?
@@ -119,14 +119,14 @@ export const login = async (req, res) => {
     }
 
     const user = users[0];
-   
+
     if (user.status !== "ACTIVE") {
       return res.status(403).json({
         success: false,
         message: "Account is not active",
       });
     }
-   
+
     const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
@@ -135,24 +135,26 @@ export const login = async (req, res) => {
         message: "Invalid credentials",
       });
     }
-   
+
     const accessToken = jwt.sign(
       { user_id: user.id, role_id: user.role_id },
-      "ACCESS_SECRET_KEY",
-      { expiresIn: "15m" }
+      process.env.JWT_SECRET,
+      {
+        expiresIn: process.env.JWT_EXPIRES_IN
+      }
     );
 
     const refreshToken = uuidv4();
-   
+
     await db.query(
       `UPDATE user_tokens
        SET is_revoked = 1
        WHERE user_id = ?`,
       [user.id]
     );
-    
+
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-   
+
     await db.query(
       `INSERT INTO user_tokens
       (user_id, access_token, refresh_token, is_revoked, expires_at)
@@ -171,6 +173,7 @@ export const login = async (req, res) => {
       message: "Login successful",
       data: {
         user_id: user.id,
+        role_id: user.role_id,
         name: user.name,
         email: user.email,
         phone: user.phone,
@@ -188,4 +191,46 @@ export const login = async (req, res) => {
   }
 };
 
-// Customer Logout
+//Logout
+export const logout = async (req, res) => {
+    try {
+        const authHeader = req.headers.authorization;
+
+        if (!authHeader || !authHeader.startsWith("Bearer ")) {
+            return res.status(400).json({
+                success: false,
+                message: "Authorization token missing"
+            });
+        }
+
+        const token = authHeader.split(" ")[1];
+
+        // revoke token
+        const [result] = await db.execute(
+            `
+            UPDATE user_tokens
+            SET is_revoked = 1
+            WHERE access_token = ?
+            `,
+            [token]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(400).json({
+                success: false,
+                message: "Token already invalid or not found"
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: "Logged out successfully"
+        });
+    } catch (error) {
+        console.error("Logout Error:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Internal Server Error"
+        });
+    }
+};
