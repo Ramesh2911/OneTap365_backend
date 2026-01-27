@@ -10,6 +10,7 @@ import subscriptionRoutes from './routes/subscriptionRoutes.js';
 import itemRoutes from './routes/itemRoutes.js';
 import serviceCategoriesRoutes from './routes/serviceCategoryRoutes.js';
 import serviceSubCategoriesRoutes from './routes/serviceSubcategoryRoutes.js';
+import bookingRoutes from './routes/bookingRoutes.js';
 
 config({
     path: './config.env'
@@ -35,5 +36,6 @@ app.use('/api', subscriptionRoutes);
 app.use('/api', itemRoutes);
 app.use('/api', serviceCategoriesRoutes);
 app.use('/api', serviceSubCategoriesRoutes);
+app.use('/api', bookingRoutes);
 
 export default app;

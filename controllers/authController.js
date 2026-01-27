@@ -92,6 +92,114 @@ export const register = async (req, res) => {
   }
 };
 
+// Service Provider Registration
+export const serviceProviderRegister = async (req, res) => {
+  try {
+    const {
+      service_cat_id,
+      service_subcat_id,
+      name,
+      email,
+      phone,
+      password,
+      addar_no,
+      pan_no,
+    } = req.body;
+    
+    if (
+      !service_cat_id ||
+      !service_subcat_id ||
+      !name ||
+      !email ||
+      !phone ||
+      !password
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Service category, sub category, name, email, phone and password are required",
+      });
+    }
+   
+    if (!req.files?.resume_doc) {
+      return res.status(400).json({
+        success: false,
+        message: "Resume document is required",
+      });
+    }
+   
+    const [existing] = await db.query(
+      "SELECT id FROM users WHERE phone = ? OR email = ?",
+      [phone, email]
+    );
+
+    if (existing.length) {
+      return res.status(409).json({
+        success: false,
+        message: "Phone number or email already registered",
+      });
+    }
+  
+    const hashedPassword = await bcrypt.hash(password, 10);
+  
+    const profileImage = req.files?.profile_image?.[0]?.filename || null;
+    const addarFront = req.files?.addar_front?.[0]?.filename || null;
+    const addarBack = req.files?.addar_back?.[0]?.filename || null;
+    const panImg = req.files?.pan_img?.[0]?.filename || null;
+    const resumeDoc = req.files?.resume_doc?.[0]?.filename; 
+  
+    await db.query(
+      `INSERT INTO users
+      (
+        role_id,
+        service_cat_id,
+        service_subcat_id,
+        name,
+        email,
+        phone,
+        password,
+        profile_image,
+        addar_no,
+        pan_no,
+        pan_img,
+        resume_doc,
+        addar_front,
+        addar_back,
+        status
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        3,
+        service_cat_id,
+        service_subcat_id,
+        name,
+        email,
+        phone,
+        hashedPassword,
+        profileImage,
+        addar_no || null,
+        pan_no || null,
+        panImg,
+        resumeDoc,
+        addarFront,
+        addarBack,
+        "PENDING",
+      ]
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Service provider registered successfully",
+    });
+  } catch (err) {
+    console.error("Service Provider Register Error:", err);
+    res.status(500).json({
+      success: false,
+      message: "Service provider registration failed",
+    });
+  }
+};
+
 //Login
 export const login = async (req, res) => {
   try {
@@ -233,4 +341,51 @@ export const logout = async (req, res) => {
             message: "Internal Server Error"
         });
     }
+};
+
+// Update Service Provider Status
+export const updateProviderStatus = async (req, res) => {
+  try {
+    const { id } = req.query;
+    const { status } = req.body;
+    
+    if (!id || !status) {
+      return res.status(400).json({
+        success: false,
+        message: "User ID and status are required",
+      });
+    }
+  
+    const allowedStatus = ["ACTIVE", "INACTIVE"];
+
+    if (!allowedStatus.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid status value",
+      });
+    }
+   
+    const [result] = await db.query(
+      "UPDATE users SET status = ? WHERE id = ?",
+      [status, id]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `User status updated to ${status}`,
+    });
+  } catch (err) {
+    console.error("Update Status Error:", err);
+    res.status(500).json({
+      success: false,
+      message: "Failed to update user status",
+    });
+  }
 };
