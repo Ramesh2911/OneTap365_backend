@@ -18,7 +18,6 @@ categoriesRoutes.post(
 
 categoriesRoutes.get(
     "/all-categories",
-    verifyToken,
     getAllCategories
 );
 
