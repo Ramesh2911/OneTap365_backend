@@ -4,7 +4,6 @@ import {
     getAllCategories,
     updateCategory
 } from "../controllers/categoriesController.js";
-
 import { upload } from "../middleware/upload.js";
 import { verifyToken } from "../middleware/auth.js";
 
